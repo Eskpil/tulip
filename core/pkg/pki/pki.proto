@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "github.com/eskpil/tulip/core/pkg/pki";
+
+message RequestSignedCertificateRequest {
+  string entity = 1;
+}
+message RequestSignedCertificateResponse {
+  string public_key = 1;
+  string private_key = 2;
+}
+
+service pki {
+  rpc RequestSignedCertificate(RequestSignedCertificateRequest) returns (RequestSignedCertificateResponse);
+}
