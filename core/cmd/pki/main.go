@@ -14,16 +14,17 @@ type PkiServer struct {
 }
 
 func (server *PkiServer) RequestSignedCertificate(ctx context.Context, request *pki.RequestSignedCertificateRequest) (*pki.RequestSignedCertificateResponse, error) {
-
-	cert, key, err := ca.CreatePair()
+	cert, key, err := ca.CreatePair("interface.pink")
 	if err != nil {
 		return nil, err
 	}
 
-	_ = cert
-	_ = key
+	response := new(pki.RequestSignedCertificateResponse)
 
-	return nil, nil
+	response.PrivateKey = key
+	response.PublicKey = cert
+
+	return response, nil
 }
 
 func main() {

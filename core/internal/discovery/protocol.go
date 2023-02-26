@@ -13,10 +13,16 @@ const (
 	OpResponse
 )
 
+type Service struct {
+	Name string
+	Port uint16
+}
+
 type RequestBody struct {
-	Version  uint16
-	Hostname string
-	Uname    string
+	Version     uint16
+	DeviceClass string
+	Hostname    string
+	Uname       string
 }
 
 type ResponseBody struct {
@@ -25,7 +31,8 @@ type ResponseBody struct {
 	PrivateKey string
 	PublicKey  string
 
-	Port    uint16
+	Services []Service
+
 	Version uint16
 }
 
@@ -47,13 +54,38 @@ func EncodeString(buffer *bytes.Buffer, data string) error {
 	return nil
 }
 
+func EncodeService(buffer *bytes.Buffer, service Service) error {
+	if err := EncodeString(buffer, service.Name); err != nil {
+		return err
+	}
+
+	if err := binary.Write(buffer, binary.LittleEndian, uint16(service.Port)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func EncodeServices(buffer *bytes.Buffer, data []Service) error {
+	if err := binary.Write(buffer, binary.LittleEndian, uint32(len(data))); err != nil {
+		return err
+	}
+
+	for _, service := range data {
+		if err := EncodeService(buffer, service); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func Encode(packet Packet) (*bytes.Buffer, error) {
 	buffer := &bytes.Buffer{}
 
 	if err := binary.Write(buffer, binary.LittleEndian, packet.Id); err != nil {
 		return nil, err
 	}
-
 	if err := binary.Write(buffer, binary.LittleEndian, packet.Op); err != nil {
 		return nil, err
 	}
@@ -67,9 +99,6 @@ func Encode(packet Packet) (*bytes.Buffer, error) {
 			return nil, err
 		}
 	} else {
-		//if err := EncodeAddress(buffer, packet.Response.Address); err != nil {
-		//	return nil, err
-		//}
 		if err := EncodeString(buffer, packet.Response.Address); err != nil {
 			return nil, err
 		}
@@ -79,7 +108,7 @@ func Encode(packet Packet) (*bytes.Buffer, error) {
 		if err := EncodeString(buffer, packet.Response.PublicKey); err != nil {
 			return nil, err
 		}
-		if err := binary.Write(buffer, binary.LittleEndian, packet.Response.Port); err != nil {
+		if err := EncodeServices(buffer, packet.Response.Services); err != nil {
 			return nil, err
 		}
 		if err := binary.Write(buffer, binary.LittleEndian, packet.Response.Version); err != nil {
@@ -110,7 +139,6 @@ func Decode(buffer *bytes.Buffer) (*Packet, error) {
 	if err := binary.Read(buffer, binary.LittleEndian, &packet.Id); err != nil {
 		return nil, err
 	}
-
 	if err := binary.Read(buffer, binary.LittleEndian, &packet.Op); err != nil {
 		return nil, err
 	}
@@ -120,6 +148,12 @@ func Decode(buffer *bytes.Buffer) (*Packet, error) {
 
 		if err := binary.Read(buffer, binary.LittleEndian, &packet.Request.Version); err != nil {
 			return nil, err
+		}
+
+		if deviceClass, err := DecodeString(buffer); err != nil {
+			return nil, err
+		} else {
+			packet.Request.DeviceClass = deviceClass
 		}
 
 		if hostname, err := DecodeString(buffer); err != nil {

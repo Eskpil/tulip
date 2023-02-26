@@ -19,11 +19,23 @@ void dump_packet(struct controller_packet packet) {
     printf("    request.version: (%d)\n", packet.request->version);
     printf("    request.hostname: (%s) (%ld)\n", packet.request->hostname.bytes, packet.request->hostname.size);
     printf("    request.kernel: (%s) (%ld)\n", packet.request->uname.bytes, packet.request->uname.size);
+    printf("    request.device_class: (%s) (%ld)\n", packet.request->device_class.bytes, packet.request->device_class.size);
   } else {
     printf("    response.address.ipv4: (%s)\n", packet.response->address.bytes);
     printf("    response.private_key: (%s)\n", packet.response->private_key.bytes);
     printf("    response.public_key: (%s)\n", packet.response->public_key.bytes);
-    printf("    response.port: (%d)\n", packet.response->port);
+    printf("    response.services: (%d)\n", packet.response->services->amount);
+
+    for (size_t i = 0; packet.response->services->amount > i; ++i) {
+      struct controller_service service = packet.response->services->data[i];
+      printf("      response.services.name: (%s) (%ld)\n", service.name.bytes, service.name.size);
+      printf("      response.services.port: (%d)\n", service.port);
+
+      if (packet.response->services->amount - 1 != i) {
+        printf("\n");
+      }
+    }
+
     printf("    response.version: (%d)\n", packet.response->version);
   }
 
@@ -85,6 +97,28 @@ static struct controller_string *decode_string(struct arena *arena, struct encod
   return string;
 }
 
+static struct controller_service *decode_service(struct arena *arena, struct encoded_packet *packet) {
+  struct controller_service *service = arena_alloc(arena, sizeof(struct controller_service));
+
+  service->name = *decode_string(arena, packet);
+  service->port = decode_uint16(packet);
+
+  return service;
+}
+
+static struct controller_services *decode_services(struct arena *arena, struct encoded_packet *packet) {
+  struct controller_services *services = arena_alloc(arena, sizeof(struct controller_services));
+
+  services->amount = decode_uint32(packet);
+  services->data = arena_alloc(arena, sizeof(struct controller_service) * services->amount);
+
+  for (size_t i = 0; services->amount > i; ++i) {
+    services->data[i] = *decode_service(arena,packet);
+  }
+
+  return services;
+}
+
 struct encoded_packet *encode_packet(struct arena *arena, struct controller_packet packet) {
     struct encoded_packet *encoded = arena_alloc(arena, sizeof(struct encoded_packet));
 
@@ -110,6 +144,7 @@ struct encoded_packet *encode_packet(struct arena *arena, struct controller_pack
       assert(packet.request);
 
       encode_uint16(encoded, packet.request->version);
+      encode_string(encoded, packet.request->device_class);
       encode_string(encoded, packet.request->hostname);
       encode_string(encoded, packet.request->uname);
     } else {
@@ -141,7 +176,8 @@ struct controller_packet *decode_packet(struct arena *arena, struct encoded_pack
     response->private_key = *decode_string(arena, encoded);
     response->public_key = *decode_string(arena, encoded);
 
-    response->port = decode_uint16(encoded);
+    response->services = decode_services(arena, encoded);
+
     response->version = decode_uint16(encoded);
 
     packet->response = response;

@@ -2,7 +2,13 @@ package discovery
 
 import (
 	"bytes"
+	"context"
+	"fmt"
+	"github.com/eskpil/tulip/core/pkg/pki"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"net"
+	"time"
 )
 import log "github.com/sirupsen/logrus"
 
@@ -32,7 +38,25 @@ func NewServer() (*Server, error) {
 	return server, nil
 }
 
+func (s *Server) RequestCertificates(ctx context.Context, entity string) (*pki.RequestSignedCertificateResponse, error) {
+	grpcConn, err := grpc.Dial("localhost:8001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	client := pki.NewPkiClient(grpcConn)
+
+	body := new(pki.RequestSignedCertificateRequest)
+	body.Entity = entity
+
+	certificates, err := client.RequestSignedCertificate(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return certificates, nil
+}
+
 func (s *Server) Handle(request *Packet, addr *net.UDPAddr) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	s.Transactions[request.Id] = TransactionStateRequested
 
 	response := new(Packet)
@@ -41,11 +65,18 @@ func (s *Server) Handle(request *Packet, addr *net.UDPAddr) error {
 	response.Id = request.Id
 	response.Op = OpResponse
 
+	certificates, err := s.RequestCertificates(ctx, fmt.Sprintf("interface.%s", request.Request.Hostname))
+
 	response.Response.Address = "192.168.0.38"
-	response.Response.Port = 8765
 	response.Response.Version = 12
-	response.Response.PublicKey = "123"
-	response.Response.PrivateKey = "1234"
+	response.Response.PublicKey = certificates.GetPublicKey()
+	response.Response.PrivateKey = certificates.GetPrivateKey()
+
+	deviceService := Service{Name: "device", Port: 8002}
+	response.Response.Services = append(response.Response.Services, deviceService)
+
+	entityService := Service{Name: "entities", Port: 8003}
+	response.Response.Services = append(response.Response.Services, entityService)
 
 	log.Infof("Sending response")
 
@@ -93,7 +124,9 @@ func (s *Server) Listen() (chan bool, error) {
 					continue
 				}
 
-				s.Handle(packet, addr)
+				if err := s.Handle(packet, addr); err != nil {
+					log.Errorf("Failed to handle: (%v)", err)
+				}
 			}
 
 		}

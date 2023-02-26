@@ -15,8 +15,19 @@ enum controller_request_op {
   OP_RESPONSE = 1,
 };
 
+struct controller_service {
+  struct controller_string name;
+  uint16_t port;
+};
+
+struct controller_services {
+  uint32_t amount;
+  struct controller_service *data;
+};
+
 struct controller_request {
   uint16_t version;
+  struct controller_string device_class;
   struct controller_string hostname;
   struct controller_string uname;
 };
@@ -27,7 +38,8 @@ struct controller_response {
   struct controller_string private_key;
   struct controller_string public_key;
 
-  uint16_t port;
+  struct controller_services *services;
+
   uint16_t version;
 };
 

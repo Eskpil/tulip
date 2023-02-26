@@ -73,6 +73,8 @@ static int server_action(struct controller_server *server, struct epoll_event ev
     struct encoded_packet *encoded_packet = arena_alloc(server->arena, sizeof(struct encoded_packet));
     encoded_packet->bytes = arena_alloc(server->arena, nread);
 
+    memset(encoded_packet->bytes, '\0', PACKET_MAX_SIZE);
+
     memcpy(encoded_packet->bytes, buffer, nread);
     encoded_packet->size = nread;
 
@@ -145,6 +147,10 @@ static void server_send_request(struct controller_server *server, struct arena *
   packet->request->hostname.bytes = arena_alloc(arena, strlen(hostname));
   packet->request->hostname.size = strlen(hostname);
   memcpy(packet->request->hostname.bytes, hostname, strlen(hostname));
+
+  packet->request->device_class.bytes = arena_alloc(arena, strlen("interface"));
+  packet->request->device_class.size = strlen("interface");
+  sprintf(packet->request->device_class.bytes, "interface");
 
   dump_packet(*packet);
 
