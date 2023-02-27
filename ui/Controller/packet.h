@@ -15,9 +15,19 @@ enum controller_request_op {
   OP_RESPONSE = 1,
 };
 
+struct controller_supported_protocol {
+  struct controller_string protocol;
+  uint16_t port;
+};
+
+struct controller_supported_protocols {
+  uint32_t amount;
+  struct controller_supported_protocol *data;
+};
+
 struct controller_service {
   struct controller_string name;
-  uint16_t port;
+  struct controller_supported_protocols supported_protocols;
 };
 
 struct controller_services {

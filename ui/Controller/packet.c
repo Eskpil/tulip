@@ -22,14 +22,23 @@ void dump_packet(struct controller_packet packet) {
     printf("    request.device_class: (%s) (%ld)\n", packet.request->device_class.bytes, packet.request->device_class.size);
   } else {
     printf("    response.address.ipv4: (%s)\n", packet.response->address.bytes);
-    printf("    response.private_key: (%s)\n", packet.response->private_key.bytes);
-    printf("    response.public_key: (%s)\n", packet.response->public_key.bytes);
+    printf("    response.private_key: (suppressed)\n");
+    printf("    response.public_key: (suppressed)\n");
     printf("    response.services: (%d)\n", packet.response->services->amount);
 
     for (size_t i = 0; packet.response->services->amount > i; ++i) {
       struct controller_service service = packet.response->services->data[i];
       printf("      response.services.name: (%s) (%ld)\n", service.name.bytes, service.name.size);
-      printf("      response.services.port: (%d)\n", service.port);
+
+      for (size_t x = 0; service.supported_protocols.amount > x; ++x) {
+        struct controller_supported_protocol protocol = service.supported_protocols.data[i];
+        printf("        response.service.supported_protocols.protocol: (%s) (%ld)\n", protocol.protocol.bytes, protocol.protocol.size);
+        printf("        response.service.supported_protocols.port: (%d)\n", protocol.port);
+
+        if (service.supported_protocols.amount -1 != x) {
+          printf("\n");
+        }
+      }
 
       if (packet.response->services->amount - 1 != i) {
         printf("\n");
@@ -97,11 +106,33 @@ static struct controller_string *decode_string(struct arena *arena, struct encod
   return string;
 }
 
+static struct controller_supported_protocol *decode_supported_protocol(struct arena *arena, struct encoded_packet *packet) {
+  struct controller_supported_protocol *protocol = arena_alloc(arena, sizeof(struct controller_supported_protocol));
+
+  protocol->protocol = *decode_string(arena, packet);
+  protocol->port = decode_uint16(packet);
+
+  return protocol;
+}
+
+static struct controller_supported_protocols *decode_supported_protocols(struct arena *arena, struct encoded_packet *packet) {
+  struct controller_supported_protocols *supported_protocols = arena_alloc(arena, sizeof(struct controller_supported_protocols));
+
+  supported_protocols->amount = decode_uint32(packet);
+  supported_protocols->data = arena_alloc(arena, sizeof(struct controller_supported_protocol) * supported_protocols->amount);
+
+  for (size_t i = 0; supported_protocols->amount > i; ++i) {
+    supported_protocols->data[i] = *decode_supported_protocol(arena, packet);
+  }
+
+  return supported_protocols;
+}
+
 static struct controller_service *decode_service(struct arena *arena, struct encoded_packet *packet) {
   struct controller_service *service = arena_alloc(arena, sizeof(struct controller_service));
 
   service->name = *decode_string(arena, packet);
-  service->port = decode_uint16(packet);
+  service->supported_protocols = *decode_supported_protocols(arena, packet);
 
   return service;
 }
@@ -185,4 +216,3 @@ struct controller_packet *decode_packet(struct arena *arena, struct encoded_pack
 
   return packet;
 }
-

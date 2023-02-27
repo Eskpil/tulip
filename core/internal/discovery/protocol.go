@@ -13,9 +13,14 @@ const (
 	OpResponse
 )
 
+type SupportedProtocol struct {
+	Protocol string
+	Port     uint16
+}
+
 type Service struct {
-	Name string
-	Port uint16
+	Name               string
+	SupportedProtocols []SupportedProtocol
 }
 
 type RequestBody struct {
@@ -59,8 +64,18 @@ func EncodeService(buffer *bytes.Buffer, service Service) error {
 		return err
 	}
 
-	if err := binary.Write(buffer, binary.LittleEndian, uint16(service.Port)); err != nil {
+	if err := binary.Write(buffer, binary.LittleEndian, uint32(len(service.SupportedProtocols))); err != nil {
 		return err
+	}
+
+	for _, protocol := range service.SupportedProtocols {
+		if err := EncodeString(buffer, protocol.Protocol); err != nil {
+			return err
+		}
+
+		if err := binary.Write(buffer, binary.LittleEndian, protocol.Port); err != nil {
+			return err
+		}
 	}
 
 	return nil

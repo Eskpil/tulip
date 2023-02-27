@@ -72,10 +72,12 @@ func (s *Server) Handle(request *Packet, addr *net.UDPAddr) error {
 	response.Response.PublicKey = certificates.GetPublicKey()
 	response.Response.PrivateKey = certificates.GetPrivateKey()
 
-	deviceService := Service{Name: "device", Port: 8002}
+	httpSupportedProtocol := SupportedProtocol{Protocol: "http", Port: 8002}
+	quicSupportedProtocol := SupportedProtocol{Protocol: "quic", Port: 8003}
+	deviceService := Service{Name: "device", SupportedProtocols: []SupportedProtocol{httpSupportedProtocol, quicSupportedProtocol}}
 	response.Response.Services = append(response.Response.Services, deviceService)
 
-	entityService := Service{Name: "entities", Port: 8003}
+	entityService := Service{Name: "entities", SupportedProtocols: []SupportedProtocol{httpSupportedProtocol, quicSupportedProtocol}}
 	response.Response.Services = append(response.Response.Services, entityService)
 
 	log.Infof("Sending response")

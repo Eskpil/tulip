@@ -20,6 +20,8 @@
 #include "server.h"
 #include "packet.h"
 
+#define DEBUG
+
 struct controller_server *server_create(struct arena *arena) {
   struct controller_server *server = arena_alloc(arena, sizeof(struct controller_server));
 
@@ -129,6 +131,10 @@ int server_socket_action(struct epoll_event event, void *data) {
 
     fprintf(stderr, "[info]: Found transaction for id: (%d)\n", transaction->id);
     transaction->state = CONTROLLER_TRANSACTION_STATE_RESPONDED;
+
+#ifdef DEBUG
+    dump_packet(*packet);
+#endif
   }
 
   return 0;
