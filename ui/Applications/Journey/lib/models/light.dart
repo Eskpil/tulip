@@ -1,11 +1,9 @@
 import 'package:journey/models/command.dart';
 import 'package:journey/models/entity.dart';
 
-import 'dart:async';
 import 'package:format/format.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:sprintf/sprintf.dart';
 
 class BinaryLightSwitchCommand extends Subcommand {
   @override
@@ -16,11 +14,11 @@ class BinaryLightSwitchCommand extends Subcommand {
 
 class Light {
   static void opposite(Entity entity) async {
-    final command = Command(subcommand: BinaryLightSwitchCommand());
+    final command = Command(subject: "light", subcommand: BinaryLightSwitchCommand());
 
-    final uri = Uri.parse(format("http://localhost:8000/entities/%s/action/", entity.id));
+    final uri = Uri.parse(format("http://localhost:8000/entities/{}/action/", entity.id));
     final response = await http
-        .patch(uri, body: json.encode(command));
+        .patch(uri, body: json.encode(command), headers: { "Content-Type": "application/json"});
 
     if (response.statusCode == 200) {
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/eskpil/tulip/core/internal/api/responses"
+	"github.com/eskpil/tulip/core/internal/controller"
 	"github.com/eskpil/tulip/core/internal/database"
 	"github.com/eskpil/tulip/core/pkg/models"
 	"github.com/labstack/echo/v4"
@@ -60,28 +61,29 @@ func GetAll(c echo.Context) error {
 func EntityAction(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_ = ctx
 
-	var body struct {
-		Subcommand struct {
-			Name string `json:"name"`
-		} `json:"subcommand"`
-	}
+	var command controller.Command
 
-	if err := c.Bind(&body); err != nil {
+	if err := c.Bind(&command); err != nil {
 		log.Errorf("Could not bind body of request: %v", err)
 		return err
 	}
 
 	id := c.Param("id")
+	log.Infof("id = %s", id)
 
 	var entity models.Entity
 
-	result := database.Client().Find(entity, id)
+	result := database.Client().Find(&entity, "id = ?", id)
 	if result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		log.Fatalf("Could not find entity: %s", id)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return nil
+	if err := controller.Action(ctx, &entity, &command); err != nil {
+		log.Errorf("Could not perform command: %v", err)
+		return err
+	}
+
+	return c.JSON(http.StatusOK, responses.ActionResponse{Ok: true})
 }

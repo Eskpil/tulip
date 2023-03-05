@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "github.com/eskpil/tulip/core/pkg/discovery";
+
+message PublishMQTTMessageRequest {
+  string topic = 1;
+  bytes payload = 2; // payload is encoded in whatever the entity needs.
+}
+
+message PublishMQTTMessageResponse {
+  bool ok = 1;
+}
+
+service discovery {
+  rpc PublishMQTTMessage(PublishMQTTMessageRequest) returns (PublishMQTTMessageResponse);
+}

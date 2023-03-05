@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "github.com/eskpil/tulip/core/pkg/gateway";
+
+message PublishRequest {
+  string subject = 1;
+  bytes payload = 2;
+}
+
+message PublishResponse {
+  bool ok = 1;
+}
+
+service gateway {
+  rpc Publish(PublishRequest) returns (PublishResponse);
+}

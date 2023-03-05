@@ -7,7 +7,6 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/eskpil/tulip/core/pkg/api"
 	"github.com/eskpil/tulip/core/pkg/models"
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"strings"
@@ -147,8 +146,6 @@ var f mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	parts := strings.Split(msg.Topic(), "/")
 	action := parts[len(parts)-1]
 
-	log.Infof("topic: (%s)", msg.Topic())
-
 	if action == "config" {
 		var config Config
 		if err := json.Unmarshal(msg.Payload(), &config); err != nil {
@@ -232,10 +229,12 @@ var f mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 			}
 		}
 	} else if action == "state" {
-		log.Infof("Topic: (%v)", msg.Topic())
+
+		if parts[1] == "light" {
+			log.Infof("payload: %s", msg.Payload())
+		}
 
 		state := new(models.EntityState)
-		state.Id = uuid.New().String()
 		state.EntityId = fmt.Sprintf("%s.%s", parts[1], parts[2])
 		state.State = string(msg.Payload())
 
