@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+option go_package = "github.com/eskpil/tulip/core/pkg/api";
+
+message GenericEntityRequest {
+  string id = 1;
+  string driver = 2;
+  string device_id = 3;
+  bytes entity_metadata = 4;
+  bytes driver_metadata = 5;
+  string name = 6;
+  string kind = 7;
+}
+
+message CreateEntityResponse {
+  bool ok = 1;
+}
+
+message UpdateEntityResponse {
+  bool ok = 1;
+}
+
+message EntityExistsRequest {
+  string id = 1;
+}
+
+message EntityExistsResponse {
+  bool ok = 1;
+}
+
+message AppendEntityHistoryRequest {
+  string entity_id = 1;
+  string state = 2;
+}
+
+message AppendEntityHistoryResponse {
+  bool ok = 1;
+}
+
+service api {
+  rpc EntityExists(EntityExistsRequest) returns (EntityExistsResponse);
+  rpc CreateEntity(GenericEntityRequest) returns (CreateEntityResponse);
+  rpc UpdateEntity(GenericEntityRequest) returns (UpdateEntityResponse);
+
+  rpc AppendEntityHistory(AppendEntityHistoryRequest) returns (AppendEntityHistoryResponse);
+}

@@ -28,7 +28,7 @@ func (server *PkiServer) RequestSignedCertificate(ctx context.Context, request *
 }
 
 func main() {
-	listener, err := net.Listen("tcp", ":8001")
+	listener, err := net.Listen("tcp", ":8002")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

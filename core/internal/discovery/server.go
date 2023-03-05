@@ -1,137 +1,68 @@
 package discovery
 
 import (
-	"bytes"
-	"context"
 	"fmt"
-	"github.com/eskpil/tulip/core/pkg/pki"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"net"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/eskpil/tulip/core/pkg/wind"
+	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
-import log "github.com/sirupsen/logrus"
 
 type Server struct {
-	Conn *net.UDPConn
-
-	Transactions map[uint16]TransactionState
+	Wind *wind.Server
+	Mqtt mqtt.Client
 }
 
 func NewServer() (*Server, error) {
 	server := new(Server)
 
-	server.Transactions = make(map[uint16]TransactionState)
-
-	addr, err := net.ResolveUDPAddr("udp", "0.0.0.0:7654")
+	windServer, err := wind.NewServer()
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("wind: %v", err)
 	}
+	server.Wind = windServer
 
-	conn, err := net.ListenUDP("udp", addr)
-	if err != nil {
-		log.Fatalf("could not listen: (%v)", err)
-	}
+	mqtt.ERROR = log.New()
+	opts := mqtt.NewClientOptions().AddBroker("tcp://localhost:1883").SetClientID("tulip_core")
 
-	server.Conn = conn
+	opts.SetKeepAlive(60 * time.Second)
+	// Set the message callback handler
+	opts.SetDefaultPublishHandler(f)
+	opts.SetPingTimeout(1 * time.Second)
 
-	return server, nil
-}
-
-func (s *Server) RequestCertificates(ctx context.Context, entity string) (*pki.RequestSignedCertificateResponse, error) {
-	grpcConn, err := grpc.Dial("localhost:8001", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	client := pki.NewPkiClient(grpcConn)
-
-	body := new(pki.RequestSignedCertificateRequest)
-	body.Entity = entity
-
-	certificates, err := client.RequestSignedCertificate(ctx, body)
-	if err != nil {
+	server.Mqtt = mqtt.NewClient(opts)
+	if token := server.Mqtt.Connect(); token.Wait() && token.Error() != nil {
 		return nil, err
 	}
 
-	return certificates, nil
-}
-
-func (s *Server) Handle(request *Packet, addr *net.UDPAddr) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	s.Transactions[request.Id] = TransactionStateRequested
-
-	response := new(Packet)
-	response.Response = new(ResponseBody)
-
-	response.Id = request.Id
-	response.Op = OpResponse
-
-	certificates, err := s.RequestCertificates(ctx, fmt.Sprintf("interface.%s", request.Request.Hostname))
-
-	response.Response.Address = "192.168.0.38"
-	response.Response.Version = 12
-	response.Response.PublicKey = certificates.GetPublicKey()
-	response.Response.PrivateKey = certificates.GetPrivateKey()
-
-	httpSupportedProtocol := SupportedProtocol{Protocol: "http", Port: 8002}
-	quicSupportedProtocol := SupportedProtocol{Protocol: "quic", Port: 8003}
-	deviceService := Service{Name: "device", SupportedProtocols: []SupportedProtocol{httpSupportedProtocol, quicSupportedProtocol}}
-	response.Response.Services = append(response.Response.Services, deviceService)
-
-	entityService := Service{Name: "entities", SupportedProtocols: []SupportedProtocol{httpSupportedProtocol, quicSupportedProtocol}}
-	response.Response.Services = append(response.Response.Services, entityService)
-
-	log.Infof("Sending response")
-
-	encoded, err := Encode(*response)
-	if err != nil {
-		return err
-	}
-
-	addr.Port = 6543
-
-	conn, err := net.DialUDP("udp", nil, addr)
-	if err != nil {
-		return err
-	}
-
-	if _, err = conn.Write(encoded.Bytes()); err != nil {
-		return err
-	}
-
-	return nil
+	return server, nil
 }
 
 func (s *Server) Listen() (chan bool, error) {
 	stopChannel := make(chan bool)
 
+	if err := s.Wind.Listen(stopChannel); err != nil {
+		return stopChannel, err
+	}
+
+	// Subscribe to a topic
 	go func() {
-		for {
-			select {
-			case <-stopChannel:
-				return
-			default:
-				buf := make([]byte, 1024)
-
-				_, addr, err := s.Conn.ReadFromUDP(buf)
-				if err != nil {
-					log.Errorf("could not read: (%v)", err)
-					continue
-				}
-
-				buffer := bytes.NewBuffer(buf)
-
-				packet, err := Decode(buffer)
-				if err != nil {
-					log.Errorf("could not decode: (%v)", err)
-					continue
-				}
-
-				if err := s.Handle(packet, addr); err != nil {
-					log.Errorf("Failed to handle: (%v)", err)
-				}
-			}
-
+		if token := s.Mqtt.Subscribe("#", 0, nil); token.Wait() && token.Error() != nil {
+			log.Errorf("Failed to subscribe: %v", token.Error())
 		}
+
+		<-stopChannel
+
+		// Unsubscribe
+		if token := s.Mqtt.Unsubscribe("#"); token.Wait() && token.Error() != nil {
+			fmt.Println(token.Error())
+			os.Exit(1)
+		}
+
+		// Disconnect
+		s.Mqtt.Disconnect(250)
 	}()
 
 	return stopChannel, nil

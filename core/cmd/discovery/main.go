@@ -1,11 +1,15 @@
 package main
 
 import (
+	"github.com/eskpil/tulip/core/internal/database"
 	"github.com/eskpil/tulip/core/internal/discovery"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
+	db := database.Initialize()
+	_ = db
+
 	server, err := discovery.NewServer()
 	if err != nil {
 		log.Fatalf("Failed to create a new discovery server: (%v)", err)
