@@ -52,6 +52,30 @@ func GetAll(c echo.Context) error {
 		r.Name = e.Name
 		r.Kind = e.Kind
 
+		var history []models.EntityState
+
+		result = database.Client().Limit(10).Order("created_at DESC").Find(&history, "entity_id = ?", e.ID)
+		if result.Error != nil {
+			log.Infof("Could not get entity history: %v", result.Error)
+			return result.Error
+		}
+
+		for _, h := range history {
+			state := new(responses.State)
+
+			state.EntityId = h.EntityId
+			state.Attributes = make(map[string]interface{})
+			state.UpdatedAt = h.UpdatedAt
+			state.CreatedAt = h.CreatedAt
+
+			if err := json.Unmarshal([]byte(h.State), &state.State); err != nil {
+				log.Errorf("Could not unmarshal state: %v", err)
+				return err
+			}
+
+			r.History = append(r.History, state)
+		}
+
 		response = append(response, r)
 	}
 

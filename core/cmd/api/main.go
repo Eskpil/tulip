@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"github.com/eskpil/tulip/core/internal/api/responses"
 	"github.com/eskpil/tulip/core/internal/database"
+	"github.com/eskpil/tulip/core/pkg/gateway"
 	"github.com/eskpil/tulip/core/pkg/models"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
@@ -10,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"net"
 	"net/http"
 	"os"
@@ -100,13 +103,39 @@ func (a ApiServer) AppendEntityHistory(ctx context.Context, request *api.AppendE
 	state := new(models.EntityState)
 
 	state.Id = uuid.New().String()
-	state.State = request.State
-	state.EntityId = request.EntityId
+	state.State = request.GetState()
+	state.EntityId = request.GetEntityId()
 
 	result := database.Client().Create(state)
 	if result.Error != nil {
 		log.Errorf("Could not create state: %v", result.Error)
 		return nil, result.Error
+	}
+
+	grpcConn, err := grpc.Dial("localhost:8005", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	client := gateway.NewGatewayClient(grpcConn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	responseState, err := responses.FromEntityState(*state)
+	if err != nil {
+		return nil, err
+	}
+
+	stateBytes, err := responseState.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	gatewayRequest := new(gateway.PublishRequest)
+	gatewayRequest.Subject = "state"
+	gatewayRequest.Payload = stateBytes
+
+	_, err = client.Publish(ctx, gatewayRequest)
+	if err != nil {
+		return nil, err
 	}
 
 	response := new(api.AppendEntityHistoryResponse)
@@ -134,7 +163,9 @@ func main() {
 		e.Use(session.Middleware(sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))))
 
 		e.GET("/entities/", routeHandlers.GetAll)
+
 		e.PATCH("/entities/:id/action/", routeHandlers.EntityAction)
+		e.GET("/entities/:id/history/last/", routeHandlers.LastState)
 
 		e.Logger.Fatal(e.Start(":8000"))
 

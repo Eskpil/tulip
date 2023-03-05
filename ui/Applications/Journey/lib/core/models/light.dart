@@ -1,9 +1,10 @@
-import 'package:journey/models/command.dart';
-import 'package:journey/models/entity.dart';
+import 'package:journey/core/models/command.dart';
+import 'package:journey/entities/models/entity.dart';
 
 import 'package:format/format.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:journey/entity/models/entity_state.dart';
 
 class BinaryLightSwitchCommand extends Subcommand {
   @override
@@ -11,6 +12,27 @@ class BinaryLightSwitchCommand extends Subcommand {
     "name": "opposite",
   };
 }
+
+class LightState {
+  final Object color;
+  final String colorMode;
+  final String state;
+
+  LightState({
+    required this.color,
+    required this.colorMode,
+    required this.state
+  });
+
+  factory LightState.fromParent(EntityState state) {
+    return LightState(
+      color: state.state["color"],
+      colorMode: state.state["color_mode"],
+      state: state.state["state"],
+    );
+  }
+}
+
 
 class Light {
   static void opposite(Entity entity) async {

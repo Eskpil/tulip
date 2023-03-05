@@ -13,4 +13,6 @@ type Entity struct {
 
 	Name string            `json:"name"`
 	Kind models.EntityKind `json:"kind"`
+
+	History []*State `json:"history"`
 }

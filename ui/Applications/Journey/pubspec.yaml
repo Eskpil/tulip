@@ -39,6 +39,11 @@ dependencies:
   sprintf: "^7.0.0"
   material_design_icons_flutter: 6.0.7096
   format: ^1.2.0
+  equatable: ^2.0.5
+  bloc: ^8.1.1
+  bloc_flutter: ^0.1.0
+  flutter_bloc: ^8.1.2
+  web_socket_channel: ^2.3.0
 
 dev_dependencies:
   flutter_test:

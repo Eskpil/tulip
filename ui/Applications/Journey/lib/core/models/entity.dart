@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:format/format.dart';
 import 'package:http/http.dart' as http;
+import 'package:journey/core/models/state.dart';
 import 'package:sprintf/sprintf.dart';
 
 class Entity {
@@ -15,6 +17,8 @@ class Entity {
   final String name;
   final String kind;
 
+  final List<EntityState> history;
+
   const Entity({
     required this.id,
     required this.driver,
@@ -26,6 +30,8 @@ class Entity {
 
     required this.name,
     required this.kind,
+
+    required this.history,
   });
 
 
@@ -41,7 +47,26 @@ class Entity {
 
       name: json['name'],
       kind: json['kind'],
+
+      history: [],
     );
+  }
+
+  static Future<EntityState> state(Entity entity) async {
+    final uri = Uri.parse(format("http://localhost:8000/entities/{}/history/last/", entity.id));
+    final response = await http
+        .get(uri);
+
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.
+      return EntityState.fromJson(jsonDecode(response.body));
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      final code = response.statusCode;
+      throw Exception('Failed to load entity state: $code');
+    }
   }
 }
 
@@ -49,7 +74,6 @@ Future<Entity> fetchEntity(String id) async {
   final uri = Uri.parse(sprintf("http://localhost:8000/entities/%s", id));
   final response = await http
     .get(uri);
-
 
   if (response.statusCode == 200) {
     // If the server did return a 200 OK response,

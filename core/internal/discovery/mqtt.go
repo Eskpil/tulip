@@ -229,14 +229,24 @@ var f mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 			}
 		}
 	} else if action == "state" {
-
-		if parts[1] == "light" {
-			log.Infof("payload: %s", msg.Payload())
-		}
-
 		state := new(models.EntityState)
 		state.EntityId = fmt.Sprintf("%s.%s", parts[1], parts[2])
-		state.State = string(msg.Payload())
+
+		if parts[1] == "sensor" {
+			sensorState := models.SensorState{
+				Value: string(msg.Payload()),
+			}
+
+			sensorStateBytes, err := json.Marshal(&sensorState)
+			if err != nil {
+				log.Errorf("Could not marshal sensorState: %v", err)
+				return
+			}
+
+			state.State = string(sensorStateBytes)
+		} else {
+			state.State = string(msg.Payload())
+		}
 
 		if _, err := appendEntityHistory(ctx, state); err != nil {
 			log.Errorf("Could not add entity history: %v", err)

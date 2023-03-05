@@ -38,11 +38,15 @@ type SensorMetadata struct {
 	StatisticsClass   string `json:"statistics_class"`
 }
 
+type SensorState struct {
+	Value string `json:"value"`
+}
+
 type EntityState struct {
 	Id       string `json:"-" gorm:"primaryKey"`
 	EntityId string `json:"entity_id"`
 
-	State string `json:"string"`
+	State string `json:"state"`
 	// Attributes should be a map[string]string, but we marshal it
 	// before we put it into the entity.
 	Attributes string `json:"attributes"`

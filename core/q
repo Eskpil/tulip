@@ -1,0 +1,5 @@
+{"subject":"state","entity_id":"","payload":{"attributes":"","created_at":"2023-03-05T23:09:04.824036989+01:00","entity_id":"sensor.house_temperature","state":"{\"value\":\"23.0\"}","updated_at":"2023-03-05T23:09:04.824036989+01:00"}}
+{"subject":"state","entity_id":"","payload":{"attributes":"","created_at":"2023-03-05T23:09:04.833743763+01:00","entity_id":"sensor.home_room_humidity","state":"{\"value\":\"32\"}","updated_at":"2023-03-05T23:09:04.833743763+01:00"}}
+{"subject":"state","entity_id":"","payload":{"attributes":"","created_at":"2023-03-05T23:09:09.993626721+01:00","entity_id":"sensor.house_temperature","state":"{\"value\":\"23.0\"}","updated_at":"2023-03-05T23:09:09.993626721+01:00"}}
+{"subject":"state","entity_id":"","payload":{"attributes":"","created_at":"2023-03-05T23:09:10.00077296+01:00","entity_id":"sensor.home_room_humidity","state":"{\"value\":\"32\"}","updated_at":"2023-03-05T23:09:10.00077296+01:00"}}
+
