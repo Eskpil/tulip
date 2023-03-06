@@ -14,7 +14,7 @@ type PkiServer struct {
 }
 
 func (server *PkiServer) RequestSignedCertificate(ctx context.Context, request *pki.RequestSignedCertificateRequest) (*pki.RequestSignedCertificateResponse, error) {
-	cert, key, err := ca.CreatePair("interface.pink")
+	cert, key, err := ca.CreatePair(request.Entity)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (server *PkiServer) RequestSignedCertificate(ctx context.Context, request *
 }
 
 func main() {
-	listener, err := net.Listen("tcp", ":8002")
+	listener, err := net.Listen("tcp", ":8006")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

@@ -1,8 +1,8 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:journey/core/models/entity.dart';
 
-import '../models/entity.dart';
 
 @immutable
 abstract class EntitiesState extends Equatable {

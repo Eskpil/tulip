@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:format/format.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:journey/entities/models/entity.dart';
-import 'package:journey/entity/models/entity_state.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:journey/core/models/entity.dart';
+import 'package:journey/core/models/state.dart';
 
 class EntityRepository {
   final WebSocketChannel channel =

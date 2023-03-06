@@ -1,10 +1,10 @@
 import 'package:journey/core/models/command.dart';
-import 'package:journey/entities/models/entity.dart';
+import 'package:journey/core/models/entity.dart';
+import 'package:journey/core/models/state.dart';
 
 import 'package:format/format.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:journey/entity/models/entity_state.dart';
 
 class BinaryLightSwitchCommand extends Subcommand {
   @override
@@ -32,7 +32,6 @@ class LightState {
     );
   }
 }
-
 
 class Light {
   static void opposite(Entity entity) async {

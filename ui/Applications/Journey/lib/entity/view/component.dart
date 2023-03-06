@@ -3,11 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:journey/entity/bloc/entity_state_event.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
-import 'package:journey/entities/models/entity.dart';
 import 'package:journey/entity/bloc/entity_state_bloc.dart';
 import 'package:journey/entity/bloc/entity_state_state.dart';
-import 'package:journey/entity/models/entity_state.dart';
+import 'package:journey/core/models/entity.dart';
+import 'package:journey/core/models/state.dart';
 
+import '../../cards/light/view/component.dart';
 import '../../core/models/light.dart';
 import '../../repositories/entity.dart';
 
@@ -81,18 +82,30 @@ class EntityView extends StatelessWidget {
           }
 
           if (state is EntityStateUpdated) {
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: Colors.black45,
-                boxShadow: const [
-                  BoxShadow(color: Colors.black38, spreadRadius: 3),
-                ],
-              ),
-              padding: const EdgeInsets.all(12),
-              child: _buildInner(state.state),
-            );
+            switch (entity.kind) {
+              case "light": {
+                return LightView(entity: entity, state: state.state);
+              }
+              default: {
+                final kind = entity.kind;
+                return Text("Unsupported: $kind");
+              }
+            }
           }
+
+          //if (state is EntityStateUpdated) {
+          //  return Container(
+          //    decoration: BoxDecoration(
+          //      borderRadius: BorderRadius.circular(10),
+          //      color: Colors.black45,
+          //      boxShadow: const [
+          //        BoxShadow(color: Colors.black38, spreadRadius: 3),
+          //      ],
+          //    ),
+          //    padding: const EdgeInsets.all(12),
+          //    child: _buildInner(state.state),
+          //  );
+          //}
 
           return const Text("Something might have gone wrong");
         },

@@ -6,6 +6,7 @@ import 'package:journey/entities/view/entities.dart';
 import 'package:journey/repositories/entity.dart';
 
 class App extends StatelessWidget {
+  App({ super.key });
 
   final EntityRepository entityRepository = EntityRepository();
 
@@ -20,8 +21,9 @@ class App extends StatelessWidget {
           ),
         ],
         child: MaterialApp(
-          title: "Joruney",
+          title: "Journey",
           initialRoute: "/",
+          theme: ThemeData(),
           routes: {
             "/": (_) => const EntitiesPage(),
           },

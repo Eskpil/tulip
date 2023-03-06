@@ -15,8 +15,17 @@ const (
 )
 
 const (
-	DriverMQTT       Driver = "mqtt"
+	// DriverMQTT Any entities discovered any controlled over mqtt
+	DriverMQTT Driver = "mqtt"
+
+	// DriverChromeCast Any entities discovered and controller over
+	// the Google Chromecast api.
 	DriverChromeCast Driver = "chromecast"
+
+	// DriverWind Any entities discovered by the Wind protocol and
+	// controlled over MQTT over or Entity GRPC/HTTP api. This is most
+	// commonly used by Interface entities in the Tulip lineup.
+	DriverWind Driver = "wind"
 )
 
 type MQTTMetadata struct {
@@ -47,6 +56,7 @@ type EntityState struct {
 	EntityId string `json:"entity_id"`
 
 	State string `json:"state"`
+
 	// Attributes should be a map[string]string, but we marshal it
 	// before we put it into the entity.
 	Attributes string `json:"attributes"`
@@ -66,6 +76,10 @@ type Entity struct {
 	// JSON marshaled metadata
 	EntityMetadata string `json:"entity_metadata"`
 	DriverMetadata string `json:"driver_metadata"`
+
+	// Attributes should be a map[string]string, but we marshal it
+	// before we put it into the entity.
+	Attributes string `json:"attributes"`
 
 	Name string `json:"name"`
 
